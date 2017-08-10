@@ -1,6 +1,6 @@
 <h1><i class="fa fa-picture-o"></i> Upyun Uploads Configuration</h1>
 <hr/>
-
+<b>Fix 版本解决了Upyun配置错误就崩溃的问题，所以我没不再推荐export方法，更建议下面的使用数据库配置的方法。(虽然export效率高，但重启就没了，你又得重新写)</b>
 <p>You can configure this plugin via a combination of the below, for instance, you can use <em>database</em>
 	and <em>environment variables</em> in combination. You can also specify values in the form below, and those will be
 	stored in the database.</p>

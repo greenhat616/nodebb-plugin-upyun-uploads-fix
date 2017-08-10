@@ -1,35 +1,35 @@
 "use strict";
 
-var Package = require("./package.json");
+const Package = require("./package.json");
 
-var Upyun = require('upyun'),
-	mime = require("mime"),
-	uuid = require("uuid/v4"),
-	fs = require("fs"),
-	request = require("request"),
-	path = require("path"),
-	winston = module.parent.require("winston"),
-	nconf = module.parent.require('nconf'),
-	gm = require("gm"),
-	im = gm.subClass({ imageMagick: true }),
-	meta = module.parent.require("./meta"),
-	db = module.parent.require("./database");
+const Upyun = require('upyun'),
+      mime = require("mime"),
+      uuid = require("uuid/v4"),
+      fs = require("fs"),
+      request = require("request"),
+      path = require("path"),
+      winston = module.parent.require("winston"),
+      nconf = module.parent.require('nconf'),
+      gm = require("gm"),
+      im = gm.subClass({ imageMagick: true }),
+      meta = module.parent.require("./meta"),
+      db = module.parent.require("./database");
 
-var plugin = {};
+const plugin = {};
 
-var upyunConn = null;
+let upyunConn = null;
 
-var settings = {
+const settings = {
 	"operaterName": process.env.UPYUN_OPERATER_NAME,
 	"operaterPassword": process.env.UPYUN_OPERATER_PASSWORD,
 	"endpoint": process.env.UPYUN_ENDPOINT || "v0.api.upyun.com",
 	"bucket": process.env.UPYUN_UPLOADS_BUCKET || undefined,
 	"path": process.env.UPYUN_UPLOADS_PATH || undefined,
-	"host": process.env.UPYUN_HOST,
+	"host": process.env.UPYUN_HOST
 };
 
-function fetchSettings(callback) {
-	db.getObjectFields(Package.name, Object.keys(settings), function (err, newSettings) {
+const fetchSettings = callback => {
+	db.getObjectFields(Package.name, Object.keys(settings), (err, newSettings) => {
 		if (err) {
 			winston.error(err.message);
 			if (typeof callback === "function") {
@@ -75,7 +75,7 @@ function fetchSettings(callback) {
 		}
 
 		if (settings.path) {
-			UpyunConn().makeDir(getUpyunDir(), function (err, result) {
+			UpyunConn().makeDir(getUpyunDir(), (err, result) => {
 				if (err) {
 					winston.error(err.message);
 				}
@@ -87,17 +87,16 @@ function fetchSettings(callback) {
 			callback();
 		}
 	});
-}
+};
 
-function UpyunConn() {
+const UpyunConn = () => {
 	if (!upyunConn) {
-		console.log(settings);
-		var bucket = new Upyun.Bucket(settings.bucket, settings.operaterName, settings.operaterPassword);
-		upyunConn = new Upyun.Client(bucket, { domain: settings.endpoint });
+		const bucket = new upyun.Bucket(settings.bucket, settings.operaterName, settings.operaterPassword);
+		upyunConn = new upyun.Client(bucket, { domain: settings.endpoint });
 	}
 
 	return upyunConn;
-}
+};
 
 function makeError(err) {
 	if (err instanceof Error) {
@@ -110,41 +109,40 @@ function makeError(err) {
 	return err;
 }
 
-plugin.activate = function () {
+plugin.activate = () => {
 	fetchSettings();
 };
 
-plugin.deactivate = function () {
+plugin.deactivate = () => {
 	upyunConn = null;
 };
 
-plugin.load = function (params, callback) {
-	fetchSettings(function (err) {
+plugin.load = (params, callback) => {
+	fetchSettings(err => {
 		if (err) {
 			return winston.error(err.message);
 		}
+		const adminRoute = "/admin/plugins/upyun-uploads";
+
+		params.router.get(adminRoute, params.middleware.applyCSRF, params.middleware.admin.buildHeader, renderAdmin);
+		params.router.get("/api" + adminRoute, params.middleware.applyCSRF, renderAdmin);
+
+		params.router.post("/api" + adminRoute + "/upyunsettings", upyunSettings);
+		params.router.post("/api" + adminRoute + "/credentials", credentials);
+
+		callback();
 	});
-
-	var adminRoute = "/admin/plugins/upyun-uploads";
-
-	params.router.get(adminRoute, params.middleware.applyCSRF, params.middleware.admin.buildHeader, renderAdmin);
-	params.router.get("/api" + adminRoute, params.middleware.applyCSRF, renderAdmin);
-
-	params.router.post("/api" + adminRoute + "/upyunsettings", upyunSettings);
-	params.router.post("/api" + adminRoute + "/credentials", credentials);
-
-	callback();
 };
 
-function renderAdmin(req, res) {
+const renderAdmin = (req, res) => {
 	// Regenerate csrf token
-	var token = req.csrfToken();
+	const token = req.csrfToken();
 
-	var forumPath = nconf.get('url');
+	let forumPath = nconf.get('url');
 	if (forumPath.split("").reverse()[0] !== "/") {
 		forumPath = forumPath + "/";
 	}
-	var data = {
+	const data = {
 		bucket: settings.bucket,
 		path: settings.path,
 		host: settings.host,
@@ -156,11 +154,11 @@ function renderAdmin(req, res) {
 	};
 
 	res.render("admin/plugins/upyun-uploads", data);
-}
+};
 
-function upyunSettings(req, res, next) {
-	var data = req.body;
-	var newSettings = {
+const upyunSettings = (req, res, next) => {
+	const data = req.body;
+	const newSettings = {
 		bucket: data.bucket || "",
 		host: data.host || "",
 		path: data.path || "",
@@ -168,20 +166,20 @@ function upyunSettings(req, res, next) {
 	};
 
 	saveSettings(newSettings, res, next);
-}
+};
 
-function credentials(req, res, next) {
-	var data = req.body;
-	var newSettings = {
+const credentials = (req, res, next) => {
+	const data = req.body;
+	const newSettings = {
 		operaterName: data.operaterName || "",
 		operaterPassword: data.operaterPassword || ""
 	};
 
 	saveSettings(newSettings, res, next);
-}
+};
 
-function saveSettings(settings, res, next) {
-	db.setObject(Package.name, settings, function (err) {
+const saveSettings = (settings, res, next) => {
+	db.setObject(Package.name, settings, err => {
 		if (err) {
 			return next(makeError(err));
 		}
@@ -189,10 +187,10 @@ function saveSettings(settings, res, next) {
 		fetchSettings();
 		res.json("Saved!");
 	});
-}
+};
 
-plugin.uploadImage = function (data, callback) {
-	var image = data.image;
+plugin.uploadImage = (data, callback) => {
+	const image = data.image;
 
 	if (!image) {
 		winston.error("invalid image");
@@ -205,8 +203,8 @@ plugin.uploadImage = function (data, callback) {
 		return callback(new Error("[[error:file-too-big, " + meta.config.maximumFileSize + "]]"));
 	}
 
-	var type = image.url ? "url" : "file";
-	var allowedMimeTypes = ['image/png', 'image/jpeg', 'image/gif'];
+	const type = image.url ? "url" : "file";
+	const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/gif'];
 
 	if (type === "file") {
 		if (!image.path) {
@@ -217,41 +215,39 @@ plugin.uploadImage = function (data, callback) {
 			return callback(new Error("invalid mime type"));
 		}
 
-		fs.readFile(image.path, function (err, buffer) {
+		fs.readFile(image.path, (err, buffer) => {
 			uploadToUpyun(image.name, err, buffer, callback);
 		});
-	}
-	else {   //River: what is this about? need test.
+	} else {
+		//River: what is this about? need test.
 		if (allowedMimeTypes.indexOf(mime.lookup(image.url)) === -1) {
 			return callback(new Error("invalid mime type"));
 		}
-		var filename = image.url.split("/").pop();
+		const filename = image.url.split("/").pop();
 
-		var imageDimension = parseInt(meta.config.profileImageDimension, 10) || 128;
+		const imageDimension = parseInt(meta.config.profileImageDimension, 10) || 128;
 
 		// Resize image.
-		im(request(image.url), filename)
-			.resize(imageDimension + "^", imageDimension + "^")
-			.stream(function (err, stdout, stderr) {
-				if (err) {
-					return callback(makeError(err));
-				}
+		im(request(image.url), filename).resize(imageDimension + "^", imageDimension + "^").stream((err, stdout, stderr) => {
+			if (err) {
+				return callback(makeError(err));
+			}
 
-				// This is sort of a hack - We"re going to stream the gm output to a buffer and then upload.
-				// See https://github.com/aws/aws-sdk-js/issues/94
-				var buf = new Buffer(0);
-				stdout.on("data", function (d) {
-					buf = Buffer.concat([buf, d]);
-				});
-				stdout.on("end", function () {
-					uploadToUpyun(filename, null, buf, callback);
-				});
+			// This is sort of a hack - We"re going to stream the gm output to a buffer and then upload.
+			// See https://github.com/aws/aws-sdk-js/issues/94
+			let buf = new Buffer(0);
+			stdout.on("data", d => {
+				buf = Buffer.concat([buf, d]);
 			});
+			stdout.on("end", () => {
+				uploadToUpyun(filename, null, buf, callback);
+			});
+		});
 	}
 };
 
-plugin.uploadFile = function (data, callback) {
-	var file = data.file;
+plugin.uploadFile = (data, callback) => {
+	const file = data.file;
 
 	if (!file) {
 		return callback(new Error("invalid file"));
@@ -267,13 +263,13 @@ plugin.uploadFile = function (data, callback) {
 		return callback(new Error("[[error:file-too-big, " + meta.config.maximumFileSize + "]]"));
 	}
 
-	fs.readFile(file.path, function (err, buffer) {
+	fs.readFile(file.path, (err, buffer) => {
 		uploadToUpyun(file.name, err, buffer, callback);
 	});
 };
 
-function getUpyunDir() {
-	var remotePath = '';
+const getUpyunDir = () => {
+	let remotePath = '';
 	if (settings.path && 0 < settings.path.length) {
 		remotePath = settings.path;
 
@@ -283,14 +279,12 @@ function getUpyunDir() {
 		}
 		// remove trailing slash
 		remotePath = remotePath.replace(/\/$/, '');
-
 	}
 	return remotePath;
-}
+};
 
-
-function getUpyunHost() {
-	var host = 'http://' + settings.bucket + '.b0.upaiyun.com';
+const getUpyunHost = () => {
+	let host = 'http://' + settings.bucket + '.b0.upaiyun.com';
 	if (settings.host) {
 		// must start with http://
 		if (!settings.host.match(/^http/)) {
@@ -300,51 +294,36 @@ function getUpyunHost() {
 		}
 	}
 	return host;
-}
+};
 
-function uploadToUpyun(filename, err, buffer, callback) {
+const uploadToUpyun = (filename, err, buffer, callback) => {
 	if (err) {
 		return callback(makeError(err));
 	}
 
-	var remotePath = getUpyunDir() + '/';
+	let remotePath = getUpyunDir() + '/';
 
 	remotePath += uuid() + path.extname(filename);
-	UpyunConn().putFile(remotePath, buffer)
-		.then((data) => {
-			console.log(data);
-			const host = getUpyunHost();
-			const remoteHref = host + remotePath;
-			callback(null, {
-				name: filename,
-				url: remoteHref
-			});
-		})
-		.catch((err) => {
-			return callback(makeError(err));
-		});
-	//UpyunConn().putFile(remotePath, buffer).then();
-	/*
-	 null, true, null, function(err, result) {
-		if (err) {
-			return callback(makeError(err));
-		}
-		if (result.statusCode !== 200) {
+
+	UpyunConn().putFile(remotePath, buffer).then(data => {
+		console.log(data);
+		if (data.statusCode !== 200) {
 			return callback(makeError(result.data));
 		}
-		var host = getUpyunHost();
-		var remoteHref = host + remotePath;
+		const host = getUpyunHost();
+		const remoteHref = host + remotePath;
 		callback(null, {
 			name: filename,
 			url: remoteHref
 		});
+	}).catch(err => {
+		return callback(makeError(err));
 	});
-	*/
-}
+};
 
-var admin = plugin.admin = {};
+const admin = plugin.admin = {};
 
-admin.menu = function (custom_header, callback) {
+admin.menu = (custom_header, callback) => {
 	custom_header.plugins.push({
 		"route": "/plugins/upyun-uploads",
 		"icon": "fa-envelope-o",

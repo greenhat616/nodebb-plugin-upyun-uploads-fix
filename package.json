@@ -1,5 +1,5 @@
 {
-  "name": "nodebb-plugin-upyun-uploads",
+  "name": "nodebb-plugin-upyun-uploads-fix",
   "version": "0.1.1",
   "description": "A plugin for NodeBB to take file uploads and store them on Upyun",
   "main": "index.js",
@@ -25,10 +25,10 @@
     "compatibility": "^1.0.0"
   },
   "dependencies": {
-    "upyun": "^2.0.4",
-    "uuid": "~3.0.1",
+    "gm": "~1.23.0",
     "mime": "~1.3.4",
     "request": "~2.79.0",
-    "gm": "~1.23.0"
+    "upyun": "3.1.1",
+    "uuid": "~3.0.1"
   }
 }
