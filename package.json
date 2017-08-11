@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-upyun-uploads-fix",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A plugin for NodeBB to take file uploads and store them on Upyun",
   "main": "index.js",
   "scripts": {
@@ -16,10 +16,10 @@
     "plugin",
     "uploads"
   ],
-  "author": "River Yang <revir.qing@gmail.com>",
+  "author": "a632079 <a632079@qq.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/revir/nodebb-plugin-upyun-uploads/issues"
+    "url": "https://github.com/a632079/nodebb-plugin-upyun-uploads-fix/issues"
   },
   "nbbpm": {
     "compatibility": "^1.0.0"

@@ -1,6 +1,6 @@
 # NodeBB Upyun Uploads Plugin
 
-`npm install nodebb-plugin-upyun-uploads`
+`npm install nodebb-plugin-upyun-uploads-fix`
 
 A plugin for NodeBB to take file uploads and store them on Upyun, uses the `filter:uploadImage` and `filter:uploadFile` hooks in NodeBB.
 
